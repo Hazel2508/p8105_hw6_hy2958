@@ -19,6 +19,24 @@ homicide = read_csv("./homicide-data.csv") %>%
   filter(victim_race %in% c("White", "Black")) %>% 
   mutate(victim_age = as.numeric(victim_age))
 
+```
+
+```{r}
+#problem 1
+baltimore <- homicide %>% 
+  filter(city_state == "Baltimore, MD")
+
+fit_baltimore <- glm(
+resolved ~ victim_age + victim_sex + victim_race,
+data = baltimore, family = binomial()
+) %>% 
+  broom::tidy(conf.int = TRUE)
+
+
+fit_baltimore %>%
+filter(term == "victim_sexMale") %>%
+select(term, estimate, conf.low, conf.high) %>% 
+knitr::kable()
 
 ```
 
