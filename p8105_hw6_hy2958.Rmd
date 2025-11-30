@@ -1,0 +1,24 @@
+---
+title: "p8105_hw6_hy2958"
+output: github_document
+date: "2025-11-30"
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+homicide = read_csv("./homicide-data.csv") %>% 
+  mutate(city_state = str_c(city, ", ", state)) %>% 
+  mutate(resolved = if_else(disposition == "Closed by arrest", 1, 0)) %>% 
+  filter(!city_state %in% c("Dallas, TX",
+  "Phoenix, AZ",
+  "Kansas City, MO",
+  "Tulsa, AL")) %>%
+  filter(victim_race %in% c("White", "Black")) %>% 
+  mutate(victim_age = as.numeric(victim_age))
+
+
+```
+
