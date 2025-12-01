@@ -112,3 +112,47 @@ ggplot(or_ci_city,
 
 ```
 The plot shows substantial variation across cities in the adjusted odds ratio (OR) comparing the probability of solving homicides involving male versus female victims. In most cities, the OR is below 1, indicating that cases with male victims are less likely to be solved than those with female victims after adjusting for age and race. A few cities show ORs close to or above 1, but many of these have wide confidence intervals, suggesting limited precision. Overall, the results highlight consistent disparities in homicide resolution associated with victim sex across major U.S. cities.
+
+```{r}
+#problem 2
+library(p8105.datasets)
+data("weather_df")
+
+boot_fn <- function(df) {
+  boot_sample <- sample_n(df, size = nrow(df), replace = TRUE)
+
+  fit <- lm(tmax ~ tmin + prcp, data = boot_sample)
+
+  r2      <- broom::glance(fit)$r.squared
+  tidyfit <- broom::tidy(fit)
+
+  beta1 <- tidyfit$estimate[tidyfit$term == "tmin"]
+  beta2 <- tidyfit$estimate[tidyfit$term == "prcp"]
+
+  ratio <- beta1 / beta2
+
+  tibble(r2 = r2, ratio = ratio)
+}
+
+boot_results <- map_df(1:5000, ~ boot_fn(weather_df))
+
+ci_r2 <- quantile(boot_results$r2, c(0.025, 0.975))
+ci_ratio <- quantile(boot_results$ratio, c(0.025, 0.975))
+
+ci_r2
+ci_ratio
+
+boot_results %>%
+  ggplot(aes(x = r2)) +
+  geom_histogram(bins = 40, fill = "skyblue", color = "white") +
+  labs(title = "Bootstrap Distribution of R-squared")
+
+boot_results %>%
+  ggplot(aes(x = ratio)) +
+  geom_histogram(bins = 40, fill = "tomato", color = "white") +
+  labs(title = "Bootstrap Distribution of Beta1 / Beta2")
+
+```
+
+The bootstrap distribution of R^2 is concentrated and roughly symmetric, indicating that the model’s explanatory power is very stable across resampled datasets. In contrast, the distribution of the coefficient ratio 
+𝛽^1/𝛽^2 is much wider and skewed, reflecting substantial uncertainty and variability in this quantity. This suggests that while the overall fit of the model is very consistent, the relative contribution of tmin versus prcp is much less stable.
