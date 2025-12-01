@@ -183,18 +183,29 @@ bw <- read_csv("./birthweight.csv") %>%
 
 ```
 ```{r}
-model_A <- lm(bwt ~ blength + gaweeks + ppbmi + smoken + babysex + parity,
+model_A1 <- lm(bwt ~ blength + gaweeks + ppbmi + smoken + babysex + parity,
               data = bw)
-summary(model_A)
+summary(model_A1)
 
+model_A2 <- lm(
+  bwt ~ blength + bhead + gaweeks + ppbmi + smoken + babysex +
+    blength:bhead,
+  data = bw
+)
+summary(model_A2)
+
+
+```
+At first, we choose the direct factors: blength, gaweeks, ppbmi, smoken, babysex, parity. Because birthweight strongly depends on fetal body size, the head circumference (bhead) and the blength × bhead interaction is added. This modification increased adjusted R² from 0.58 to 0.69, reduced residual error, and removed the residual curvature. The interaction term was highly significant, confirming that birthweight is better predicted by the joint relationship between length and head circumference rather than either measure alone.
+
+```{r}
 bw_predA <- bw %>% 
-  add_predictions(model_A) %>% 
-  add_residuals(model_A)
+  add_predictions(model_A2) %>% 
+  add_residuals(model_A2)
 
 ggplot(bw_predA, aes(x = pred, y = resid)) +
   geom_point(alpha = 0.4) +
   geom_smooth(se = FALSE) +
   labs(title = "Residuals vs Fitted: Model A")
-
 ```
 
