@@ -6,6 +6,7 @@ date: "2025-11-30"
 
 ```{r}
 library(tidyverse)
+library(ggplot2)
 ```
 
 ```{r}
@@ -17,12 +18,17 @@ homicide = read_csv("./homicide-data.csv") %>%
   "Kansas City, MO",
   "Tulsa, AL")) %>%
   filter(victim_race %in% c("White", "Black")) %>% 
-  mutate(victim_age = as.numeric(victim_age))
+  mutate(victim_age = as.numeric(victim_age)) %>% 
+  filter(
+    !is.na(victim_age),
+    !is.na(victim_sex),
+    !is.na(victim_race)) 
+  
 
 ```
 
 ```{r}
-#problem 1
+#problem 1.1
 baltimore <- homicide %>% 
   filter(city_state == "Baltimore, MD")
 
@@ -40,3 +46,69 @@ knitr::kable()
 
 ```
 
+```{r}
+#1.2
+
+  
+safe_glm <- purrr::possibly(
+  function(df)
+    glm(resolved ~ victim_age + victim_sex + victim_race,
+        data = df, family = binomial()),
+  otherwise = NULL
+)
+
+safe_tidy <- function(model) {
+  if (is.null(model)) {
+    return(tibble(
+      term = character(),
+      estimate = numeric(),
+      conf.low = numeric(),
+      conf.high = numeric()
+    ))
+  } else {
+    return(
+      broom::tidy(model, conf.int = TRUE, exponentiate = TRUE)
+    )
+  }
+}
+
+city <- homicide %>%
+  group_by(city_state) %>%
+  nest() %>%
+  mutate(
+    model = map(data, safe_glm),
+    tidy_model = map(model, safe_tidy)
+  )
+
+
+or_ci_city <- city %>%
+  select(city_state, tidy_model) %>%
+  unnest(tidy_model) %>%
+  filter(term == "victim_sexMale") %>% 
+  select(city_state, estimate, conf.low, conf.high) %>%
+  arrange(estimate) 
+
+  knitr::kable(or_ci_city)
+  
+ 
+
+ggplot(or_ci_city, 
+       aes(x = reorder(city_state, estimate), y = estimate)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                width = 0.15, color = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Adjusted Odds Ratio (Male vs Female Victims) by City",
+    x = "City",
+    y = "Adjusted OR"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    axis.text.y = element_text(size = 7),  
+    plot.title  = element_text(size = 12)
+  )
+
+
+```
+The plot shows substantial variation across cities in the adjusted odds ratio (OR) comparing the probability of solving homicides involving male versus female victims. In most cities, the OR is below 1, indicating that cases with male victims are less likely to be solved than those with female victims after adjusting for age and race. A few cities show ORs close to or above 1, but many of these have wide confidence intervals, suggesting limited precision. Overall, the results highlight consistent disparities in homicide resolution associated with victim sex across major U.S. cities.
