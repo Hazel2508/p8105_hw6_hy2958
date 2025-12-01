@@ -7,6 +7,8 @@ date: "2025-11-30"
 ```{r}
 library(tidyverse)
 library(ggplot2)
+library(modelr)
+library(p8105.datasets)
 ```
 
 ```{r}
@@ -115,7 +117,7 @@ The plot shows substantial variation across cities in the adjusted odds ratio (O
 
 ```{r}
 #problem 2
-library(p8105.datasets)
+
 data("weather_df")
 
 boot_fn <- function(df) {
@@ -156,3 +158,43 @@ boot_results %>%
 
 The bootstrap distribution of R^2 is concentrated and roughly symmetric, indicating that the model’s explanatory power is very stable across resampled datasets. In contrast, the distribution of the coefficient ratio 
 𝛽^1/𝛽^2 is much wider and skewed, reflecting substantial uncertainty and variability in this quantity. This suggests that while the overall fit of the model is very consistent, the relative contribution of tmin versus prcp is much less stable.
+
+```{r}
+#problem 3
+#data preparation
+bw <- read_csv("./birthweight.csv") %>% 
+  mutate(
+   babysex = factor(babysex, 
+                     levels = c(1, 2),
+                     labels = c("male", "female")),
+    
+    frace = factor(frace,
+                   levels = c(1, 2, 3, 4, 8, 9),
+                   labels = c("White", "Black", "Asian", "PuertoRican", "Other", "Unknown")),
+    
+    mrace = factor(mrace,
+                   levels = c(1, 2, 3, 4, 8),
+                   labels = c("White", "Black", "Asian", "PuertoRican", "Other")),
+    
+    malform = factor(malform,
+                     levels = c(0, 1),
+                     labels = c("absent", "present"))
+  )
+
+```
+```{r}
+model_A <- lm(bwt ~ blength + gaweeks + ppbmi + smoken + babysex + parity,
+              data = bw)
+summary(model_A)
+
+bw_predA <- bw %>% 
+  add_predictions(model_A) %>% 
+  add_residuals(model_A)
+
+ggplot(bw_predA, aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Residuals vs Fitted: Model A")
+
+```
+
